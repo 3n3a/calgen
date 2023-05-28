@@ -1,40 +1,46 @@
 package main
 
 import (
-    "fmt"
-
-    "github.com/xuri/excelize/v2"
+	"fmt"
+	"github.com/xuri/excelize/v2"
+	"strconv"
 )
 
-func main() {
-    f, err := excelize.OpenFile("Book1.xlsx")
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    defer func() {
-        // Close the spreadsheet.
-        if err := f.Close(); err != nil {
-            fmt.Println(err)
-        }
-    }()
-    // Get value from cell by given worksheet name and cell reference.
-    cell, err := f.GetCellValue("Sheet1", "B2")
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    fmt.Println(cell)
-    // Get all the rows in the Sheet1.
-    rows, err := f.GetRows("Sheet1")
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    for _, row := range rows {
-        for _, colCell := range row {
-            fmt.Print(colCell, "\t")
-        }
-        fmt.Println()
-    }
+type Employee struct {
+	ID       int
+	Name     string
+	Position string
+}
+
+// Parse an Excel Sheet and output as an array of your Type
+//
+// You need to proovide a `parseElement` function that accepts an array of strings (the values from the row).
+// This function should then return a filled out struct of type T
+func parseExcelSheet[T interface](file string, sheet string, parseElement func(rowValues []string) T) []T {
+	f, err := excelize.OpenFile(file)
+	if err != nil {
+		fmt.Println("Failed to open Excel file:", err)
+		return
+	}
+
+	rows, err := f.GetRows(sheet)
+	if err != nil {
+		fmt.Println("Failed to get rows from the sheet:", err)
+		return
+	}
+
+	var elements []T
+	for i, row := range rows {
+		// Skip the header row
+		if i == 0 {
+			continue
+		}
+
+		// Parse the values and assign to the struct fields
+		element := parseElement(row)
+
+		elements = append(elements, element)
+	}
+
+    return elements
 }
